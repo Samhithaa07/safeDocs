@@ -1,0 +1,506 @@
+paths:
+  /files:
+    get:
+      tags:
+        - Files
+      summary: Get all files
+      parameters:
+        - in: query
+          name: page
+          required: true
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+          description: Number of files per page
+      responses:
+        '200':
+          description: Successful retrieval of files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilesResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    file:
+      tags:
+        - Files
+      summary: Create a new file
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileInput'
+      responses:
+        '201':
+          description: File created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{id}:
+    get:
+      tags:
+        - Files
+      summary: Get one file by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 25
+          description: File ID
+      responses:
+        '200':
+          description: Successful retrieval of file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          $ref: '#/components/responses/FileNotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - Files
+      summary: Update a file
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 25
+          description: File ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileInput'
+      responses:
+        '200':
+          description: File updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/AccessError'
+        '404':
+          $ref: '#/components/responses/FileNotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Files
+      summary: Delete a file
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 25
+          description: File ID
+      responses:
+        '200':
+          description: File deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/AccessError'
+        '404':
+          $ref: '#/components/responses/FileNotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{id}/comments:
+    get:
+      tags:
+        - Comments
+      summary: Get all comments for file
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 25
+          description: File ID
+        - in: query
+          name: page
+          required: true
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+          description: Number of comments per page
+      responses:
+        '200':
+          description: List of comments for the file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    file:
+      tags:
+        - Comments
+      summary: Create a new comment on a file
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 25
+          description: File ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentInput'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/FileNotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    FileInput:
+      type: object
+      required:
+        - title
+        - text
+        - tags
+      properties:
+        title:
+          type: string
+          example: File title
+        text:
+          type: string
+          example: File text
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - backend
+            - node
+        imageUrl:
+          type: string
+          nullable: true
+          example: null
+
+    FilesResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    File:
+      type: object
+      required:
+        - id
+        - title
+        - text
+        - tags
+        - viewsCount
+        - commentsCount
+        - createdAt
+        - updatedAt
+        - user
+      properties:
+        id:
+          type: integer
+          example: 25
+        title:
+          type: string
+          example: File title
+        text:
+          type: string
+          example: File text
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - backend
+            - node
+        viewsCount:
+          type: integer
+        commentsCount:
+          type: integer
+        imageUrl:
+          type: string
+          nullable: true
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-05-24T03:28:03.020Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-05-24T03:28:03.020Z
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 25
+            fullName:
+              type: string
+              example: John Doe
+            avatarUrl:
+              type: string
+              nullable: true
+              example: null
+
+    Meta:
+      type: object
+      required:
+        - total
+        - page
+        - lastPage
+      properties:
+        total:
+          type: integer
+          example: 10
+        page:
+          type: integer
+          example: 1
+        lastPage:
+          type: integer
+          example: 10
+
+    CommentInput:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          example: New comment
+
+    CommentsResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        meta:
+          $ref: '#/components/schemas/CommentsMeta'
+
+    Comment:
+      type: object
+      required:
+        - id
+        - text
+        - createdAt
+        - updatedAt
+        - user
+      properties:
+        id:
+          type: integer
+          example: 20
+        text:
+          type: string
+          example: New comment
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-05-24T03:28:03.020Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-05-24T03:28:03.020Z
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 25
+            fullName:
+              type: string
+              example: John Doe
+            avatarUrl:
+              type: string
+              nullable: true
+              example: null
+
+    CommentsMeta:
+      type: object
+      required:
+        - total
+        - page
+        - lastPage
+      properties:
+        total:
+          type: integer
+          example: 10
+        page:
+          type: integer
+          example: 1
+        lastPage:
+          type: integer
+          example: 10
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+        - error
+        - statusCode
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+        statusCode:
+          type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized (token missing or invalid)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: No token provided
+            error: Unauthorized
+            statusCode: 401
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Validation failed for body
+              errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                      example: too_small
+                    message:
+                      type: string
+                      example: String must contain at least 2 character(s)
+                    path:
+                      type: array
+                      items:
+                        type: string
+                      example: ['title']
+
+    AccessError:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Access denied
+            error: 'Access Denied'
+            statusCode: 403
+
+    FileNotFoundError:
+      description: File not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: File not found
+            error: Not Found
+            statusCode: 404
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Internal server error
+            error: 'Internal Server Error'
+            statusCode: 500

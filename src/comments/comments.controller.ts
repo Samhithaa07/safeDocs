@@ -1,0 +1,96 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { CommentsService } from './comments.service';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { ZodValidationPipe } from 'src/common/pipes/zod-validation.pipe';
+import {
+  CreateCommentDto,
+  createCommentSchema,
+} from './dto/create-comment.dto';
+import { AuthRequest } from 'src/auth/types/auth-request.type';
+import { CommentResponseDto } from './dto/comment-response.dto';
+import { UsersService } from 'src/users/users.service';
+import { createCommentResponse } from './comment.mapper';
+import {
+  UpdateCommentDto,
+  updateCommentSchema,
+} from './dto/update-comment.dto';
+
+@Controller()
+export class CommentsController {
+  constructor(
+    private readonly commentsService: CommentsService,
+    private readonly usersService: UsersService,
+  ) {}
+
+  @UseGuards(AuthGuard)
+  @Post('files/:id/comments')
+  async createComment(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(createCommentSchema)) dto: CreateCommentDto,
+    @Req() req: AuthRequest,
+  ): Promise<CommentResponseDto> {
+    const jwtPayload = req.user;
+    const user = await this.usersService.findOne(jwtPayload.id);
+    const comment = await this.commentsService.createComment(dto, user, +id);
+    return createCommentResponse(comment);
+  }
+
+  @Get('files/:id/comments')
+  async getAll(
+    @Param('id') id: string,
+    @Query('page', ParseIntPipe) page = 1,
+    @Query('limit', ParseIntPipe) limit = 10,
+  ): Promise<{
+    data: CommentResponseDto[];
+    meta: {
+      total: number;
+      page: number;
+      lastPage: number;
+    };
+  }> {
+    const { data, meta } = await this.commentsService.findByFileId(
+      +id,
+      page,
+      limit,
+    );
+
+    return {
+      data: data.map(createCommentResponse),
+      meta,
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('comments/:id')
+  async updateComment(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateCommentSchema)) dto: UpdateCommentDto,
+    @Req() req: AuthRequest,
+  ): Promise<CommentResponseDto> {
+    const user = req.user;
+    const comment = await this.commentsService.updateComment(+id, dto, user.id);
+    return createCommentResponse(comment);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('comments/:id')
+  async deleteComment(
+    @Param('id') id: string,
+    @Req() req: AuthRequest,
+  ): Promise<void> {
+    const user = req.user;
+    await this.commentsService.deleteComment(+id, user.id);
+  }
+}

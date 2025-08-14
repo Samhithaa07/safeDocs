@@ -1,0 +1,50 @@
+import { DataSource } from 'typeorm';
+import * as dotenv from 'dotenv';
+import * as bcrypt from 'bcrypt';
+import { User } from 'src/users/user.entity';
+import { Role } from 'src/users/role.enum';
+import { File } from 'src/files/file.entity';
+import { Comment } from 'src/comments/comment.entity';
+
+dotenv.config();
+
+const dataSource = new DataSource({
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  entities: [User, File, Comment],
+  synchronize: false,
+});
+
+async function seed() {
+  await dataSource.initialize();
+  const userRepo = dataSource.getRepository(User);
+
+  const adminExists = await userRepo.findOne({
+    where: { email: 'admin@example.com' },
+  });
+
+  if (adminExists) {
+    console.log('Admin already exists');
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD!, 10);
+
+  const admin = userRepo.create({
+    fullName: 'Admin',
+    email: 'admin@example.com',
+    password: passwordHash,
+    role: Role.ADMIN,
+    avatarUrl: null,
+  });
+
+  await userRepo.save(admin);
+  console.log('Admin created');
+  await dataSource.destroy();
+}
+
+seed().catch((err) => {
+  console.error('Error seeding admin:', err);
+  process.exit(1);
+});
